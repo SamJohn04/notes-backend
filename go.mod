@@ -1,5 +1,7 @@
 module github.com/SamJohn04/notes-backend
 
-go 1.22.8
+go 1.23.0
 
-require github.com/joho/godotenv v1.5.1 // indirect
+toolchain go1.23.11
+
+require github.com/joho/godotenv v1.5.1

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/SamJohn04/notes-backend/internal/config"
@@ -11,9 +11,9 @@ func Run() {
 	cfg := config.Load()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, World!")
+		w.Write([]byte("Hello, World!"))
 	})
 
-	fmt.Println("Starting server on ", cfg.ServerPort)
+	log.Println("Starting server on ", cfg.ServerPort)
 	http.ListenAndServe(":"+cfg.ServerPort, nil)
 }
