@@ -8,10 +8,13 @@ import (
 
 	"github.com/SamJohn04/notes-backend/internal/config"
 	"github.com/SamJohn04/notes-backend/internal/handler"
+	"github.com/SamJohn04/notes-backend/internal/middleware"
 )
 
 func Run() {
 	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/signup", handler.Signup)
