@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -39,7 +38,7 @@ func Auth(next http.Handler) http.Handler {
 
 		email, ok := claims["email"].(string)
 		if !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Something went wrong", http.StatusBadGateway)
 			return
 		}
 
