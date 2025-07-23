@@ -21,6 +21,16 @@ func Run() {
 		r.Post("/login", handler.Login)
 	})
 
+	r.Route("/notes", func(r chi.Router) {
+		r.Use(middleware.Auth)
+
+		r.Post("/", handler.CreateNote)
+		r.Get("/", handler.GetNotes)
+		r.Get("/{id}", handler.GetNoteById)
+		r.Put("/{id}", handler.UpdateNote)
+		r.Delete("/{id}", handler.DeleteNote)
+	})
+
 	log.Println("Starting server on ", config.Cfg.ServerPort)
 	http.ListenAndServe(":"+config.Cfg.ServerPort, r)
 }

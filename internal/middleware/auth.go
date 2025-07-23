@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -36,7 +37,12 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		email := claims["userEmail"].(string)
+		email, ok := claims["email"].(string)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		ctx := context.WithValue(r.Context(), userEmailKey, email)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
