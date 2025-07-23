@@ -1,4 +1,4 @@
 # Notes
 
-Uh oh... You're a bit early!
+Notes is an api that allows registered users to add, view, update and delete notes.
 
