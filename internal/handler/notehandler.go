@@ -82,11 +82,12 @@ func UpdateNote(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&newNote)
 
 	email, err := middleware.GetUserEmail(r)
-	if err != nil || note.Owner != email || newNote.Owner != email {
+	if err != nil || note.Owner != email {
 		http.Error(w, "Note is missing", http.StatusNotFound)
 		return
 	}
 
+	newNote.Owner = email
 	err = repository.UpdateNote(id, newNote)
 	if err != nil {
 		http.Error(w, "Note not found", http.StatusNotFound)
