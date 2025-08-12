@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -20,14 +21,14 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 
 	hashed, err := util.HashPassword(req.Password)
 	if err != nil {
-		http.Error(w, "Could not hash password", http.StatusBadGateway)
+		http.Error(w, "Could not hash password", http.StatusInternalServerError)
 		return
 	}
 	user := model.User{Email: req.Email, Password: hashed}
 
 	err = repository.CreateUser(user)
 	if err != nil {
-		http.Error(w, "User already exists", http.StatusBadRequest)
+		http.Error(w, "User already exists", http.StatusConflict)
 		return
 	}
 
@@ -39,10 +40,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&req)
 
 	user, err := repository.GetUserByEmail(req.Email)
-	if err != nil {
+	if err == sql.ErrNoRows {
 		http.Error(w, "User does not exist", http.StatusBadRequest)
 		return
+	} else if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
 	}
+
 	if !util.CheckPasswordHash(req.Password, user.Password) {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -50,7 +55,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := util.GenerateJWT(user.Email)
 	if err != nil {
-		http.Error(w, "Could not hash password", http.StatusBadGateway)
+		http.Error(w, "Could not hash password", http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]string{"token": token})

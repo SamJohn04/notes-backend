@@ -1,24 +1,26 @@
 package repository
 
 import (
-	"errors"
+	"github.com/SamJohn04/notes-backend/internal/config"
 	"github.com/SamJohn04/notes-backend/internal/model"
 )
 
-var users = map[string]model.User{} // TODO change to DB
-
 func CreateUser(user model.User) error {
-	if _, exists := users[user.Email]; exists {
-		return errors.New("user already exists")
-	}
-	users[user.Email] = user
-	return nil
+	_, err := config.DB.Exec(
+		"INSERT INTO users (email, password_hash) VALUES (?, ?)",
+		user.Email, user.Password,
+	)
+	return err
 }
 
 func GetUserByEmail(email string) (model.User, error) {
-	user, exists := users[email]
-	if !exists {
-		return model.User{}, errors.New("user not found")
-	}
-	return user, nil
+	var user model.User
+	user.Email = email
+
+	err := config.DB.QueryRow(
+		"SELECT id, password_hash FROM users WHERE email=?",
+		email,
+	).Scan(&user.Id, &user.Password)
+
+	return user, err
 }
