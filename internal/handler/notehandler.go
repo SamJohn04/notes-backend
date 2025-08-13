@@ -15,47 +15,60 @@ import (
 func CreateNote(w http.ResponseWriter, r *http.Request) {
 	var note model.Note
 	json.NewDecoder(r.Body).Decode(&note)
-	email, err := middleware.GetUserEmail(r)
+	userId, err := middleware.GetUserId(r)
 	if err != nil {
-		log.Println(err)
+		log.Println("Unauthorized in CreateNote:", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	note.Owner = email
+	note.Owner = userId
 
-	created := repository.CreateNote(note)
-	json.NewEncoder(w).Encode(created)
+	err = repository.CreateNote(note)
+	if err != nil {
+		log.Println("DB error in CreateNote:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 func GetNotes(w http.ResponseWriter, r *http.Request) {
-	email, err := middleware.GetUserEmail(r)
+	userId, err := middleware.GetUserId(r)
 	if err != nil {
-		log.Println(err)
+		log.Println("Unauthorized in GetNotes:", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	notes := repository.GetNotesByOwner(email)
+	notes, err := repository.GetNotesByOwner(userId)
+	if err != nil {
+		log.Println("DB error in GetNotes:", err)
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+
 	json.NewEncoder(w).Encode(notes)
 }
 
 func GetNoteById(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Println(err)
+		log.Println("ID is missing in GetNoteById:", err)
 		http.Error(w, "ID is missing", http.StatusBadRequest)
 		return
 	}
 
-	email, err := middleware.GetUserEmail(r)
+	userId, err := middleware.GetUserId(r)
 	if err != nil {
-		log.Println(err)
+		log.Println("Unauthorized in GetNoteById:", err)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	note, err := repository.GetNoteById(id)
-	if err != nil || note.Owner != email {
+	if err != nil || userId != note.Owner {
+		log.Println("Note is missing in GetNoteById:", err)
 		http.Error(w, "Note is missing", http.StatusNotFound)
 		return
 	}
@@ -68,55 +81,49 @@ func UpdateNote(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Println(err)
+		log.Println("ID is missing in UpdateNote:", err)
 		http.Error(w, "ID is missing", http.StatusBadRequest)
-		return
-	}
-
-	note, err := repository.GetNoteById(id)
-	if err != nil {
-		http.Error(w, "Note not found", http.StatusNotFound)
 		return
 	}
 
 	json.NewDecoder(r.Body).Decode(&newNote)
 
-	email, err := middleware.GetUserEmail(r)
-	if err != nil || note.Owner != email {
-		http.Error(w, "Note is missing", http.StatusNotFound)
+	userId, err := middleware.GetUserId(r)
+	if err != nil {
+		log.Println("Invalid user id in UpdateNote:", err)
+		http.Error(w, "Invalid user id", http.StatusUnauthorized)
 		return
 	}
 
-	newNote.Owner = email
+	newNote.Owner = userId
 	err = repository.UpdateNote(id, newNote)
 	if err != nil {
+		log.Println("Note not found in UpdateNote:", err)
 		http.Error(w, "Note not found", http.StatusNotFound)
 		return
 	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func DeleteNote(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		log.Println(err)
+		log.Println("ID missing in DeleteNote:", err)
 		http.Error(w, "ID is missing", http.StatusBadRequest)
 		return
 	}
 
-	note, err := repository.GetNoteById(id)
+	userId, err := middleware.GetUserId(r)
 	if err != nil {
-		http.Error(w, "Note not found", http.StatusNotFound)
-		return
-	}
-	email, err := middleware.GetUserEmail(r)
-	if err != nil || note.Owner != email {
-		http.Error(w, "Note is missing", http.StatusNotFound)
+		log.Println("Unauthorized in DeleteNote:", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	err = repository.DeleteNote(id)
+	err = repository.DeleteNote(id, userId)
 	if err != nil {
+		log.Println("Note not found in DeleteNote:", err)
 		http.Error(w, "Note not found; something went wrong", http.StatusNotFound)
 		return
 	}

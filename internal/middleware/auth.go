@@ -11,10 +11,12 @@ import (
 	"github.com/SamJohn04/notes-backend/internal/config"
 )
 
-const userEmailKey = "userEmail"
+const userIdKey = "userId"
 
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var id int
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Missing or invalid token", http.StatusUnauthorized)
@@ -42,15 +44,21 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userEmailKey, email)
+		err = config.DB.QueryRow("SELECT id FROM users WHERE email=?", email).Scan(&id)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), userIdKey, id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func GetUserEmail(r *http.Request) (string, error) {
-	email, ok := r.Context().Value(userEmailKey).(string)
+func GetUserId(r *http.Request) (int, error) {
+	id, ok := r.Context().Value(userIdKey).(int)
 	if !ok {
-		return "", errors.New("Not a valid string")
+		return -1, errors.New("Not a valid id")
 	}
-	return email, nil
+	return id, nil
 }
